@@ -1,0 +1,15 @@
+[Unit]
+Description = Example receiver
+Wants = network-online.target
+After = local-fs.target network-online.target
+
+[Service]
+User =
+WorkingDirectory =
+ExecStart =
+Restart = on-failure
+RestartSec = 5
+TimeoutStopSec = 5
+
+[Install]
+WantedBy = multi-user.target

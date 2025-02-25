@@ -4,83 +4,55 @@ env:
 
 on:
   push:
-    branches: [ main ]
+    branches: [ linux-intro ]
   pull_request:
-    branches: [ main ]
+    branches: [ linux-intro ]
   workflow_dispatch:
 
 jobs:
-  build:
-    strategy:
-      fail-fast: false
-      #TODO(matrix): this is here only because the strategy requires some matrix to be specified,
-      # decide how to actually utilize this better (have just one job and use a build/test/launch matrix instead?)
-      matrix:
-        rosdistro: [ humble ]
-
-    name: Build for ${{ matrix.rosdistro }}
-    runs-on: ubuntu-22.04
-    container: ros:humble-ros-base-jammy
-    timeout-minutes: 15
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-          path: ${{ github.event.repository.name }}
-      - name: Checkout simulator dependency code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-          repository: Robotics-BUT/mpc-rbt-simulator
-          path: mpc-rbt-simulator
-      - name: Install required ROS 2 dependencies
-        shell: bash
-        run: |
-          sudo apt update && rosdep update
-          rosdep install --from-paths ./ --ignore-src -r -y
-      - name: Build the ROS 2 package
-        shell: bash
-        run: source /opt/ros/${{ matrix.rosdistro }}/setup.bash && colcon build
-
   test:
-    needs: [ build ]
     strategy:
       fail-fast: false
-      #TODO(matrix): this is here only because the strategy requires some matrix to be specified,
-      # decide how to actually utilize this better (have just one job and use a build/test/launch matrix instead?)
       matrix:
-        rosdistro: [ humble ]
+        step: [build, run, tests]
 
-    name: Run tests for ${{ matrix.rosdistro }}
+    name: Testing solution (${{ matrix.step }})
     runs-on: ubuntu-22.04
     container: ros:humble-ros-base-jammy
-    timeout-minutes: 15
+    timeout-minutes: 2
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
-          path: ${{ github.event.repository.name }}
-      - name: Checkout simulator dependency code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-          repository: Robotics-BUT/mpc-rbt-simulator
-          path: mpc-rbt-simulator
-      - name: Install required ROS 2 dependencies
+      - name: Install dependencies
+        shell: bash
+        run: sudo apt update && sudo apt install nlohmann-json3-dev jq -y
+      - name: Running build script
+        id: build
+        if: matrix.step=='build' || matrix.step=='run'
+        shell: bash
+        run: source /opt/ros/humble/setup.bash && ./build.sh
+      - name: Running sender script
+        if: matrix.step=='run' && steps.build.outcome=='success'
         shell: bash
         run: |
-          sudo apt update && rosdep update
-          rosdep install --from-paths ./ --ignore-src -r -y
-      - name: Build the ROS 2 package
+          jq ".sender.sendingPeriodMillis = 200" config.json > tmp.json && mv tmp.json config.json
+          ./run_sender.sh &
+          sleep 1
+      - name: Running receiver script
+        if: matrix.step=='run' && steps.build.outcome=='success'
         shell: bash
-        run: source /opt/ros/${{ matrix.rosdistro }}/setup.bash && colcon build
-      - name: Run tests
+        run: |
+          ./run_receiver.sh &
+          sleep 1
+      - name: Running tests
+        if: matrix.step=='tests'
+        id: test
         shell: bash
-        run: source /opt/ros/${{ matrix.rosdistro }}/setup.bash && colcon test --ctest-args tests --packages-select mpc-rbt-solution
-      - name: Show test results
+        run: source /opt/ros/humble/setup.bash && colcon build && colcon test --ctest-args tests
+      - name: Showing test results
+        if: matrix.step=='tests' && steps.test.outcome=='success'
         shell: bash
-        run: source /opt/ros/${{ matrix.rosdistro }}/setup.bash && colcon test-result --verbose --all
+        run: source /opt/ros/humble/setup.bash && colcon test-result --verbose --all
