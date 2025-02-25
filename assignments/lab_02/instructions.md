@@ -26,7 +26,7 @@ Výledkem cvičení je:
 > Na konci cvičení bude práce ohodnocena až **5 body**!
 
 > [!CAUTION]  
-> Při každém pushnutí do repozitáře se zároveň spustí automatizované ověřování funkčnosti (viz. sekce `Actions` na webové stránce repozitáře). Můžete si je prohlédnout v souboru `.github/workflows/test.yml` a také v `tests/solutionTest.cpp`, je zakázáno tyto soubory modifikovat. **Na konci tohoto cvičení musí všechny testy procházet bez chyb!**
+> Při každém pushnutí do repozitáře se zároveň spustí automatizované ověřování funkčnosti (viz. sekce `Actions` na webové stránce repozitáře). Po vytvoření forku se tyto akce musí v sekci `Actions` dodatečně povolit. Můžete si je prohlédnout v souboru `.github/workflows/test.yml` a také v `tests/solutionTest.cpp`, je zakázáno tyto soubory modifikovat. **Na konci tohoto cvičení musí všechny testy procházet bez chyb!**
 
 > [!IMPORTANT]  
 > Cvičení nebude hodnoceno jen na základě funkčnosti. Bude hodnoceno i pochopení problematiky a schopnost příkazy spouštět na poptání. Doporučuji se připravit na otázky z domácí přípravy.
@@ -45,12 +45,15 @@ Pro toto zadání budete pracovat z větve `linux-intro`.
 > Všechny změny si průběžně pushujte do repozitáře. Jakékoliv změny, které nejsou uloženy ve vašem git repozitáři, mohou být navždy ztraceny!
 
 1. Udělejte si fork repozitáře [mpc-rbt-student](https://github.com/Robotics-BUT/mpc-rbt-student) do svého účtu na GitHubu.
+> [!WARNING]
+> Pokud necháte zaškrtnutou možnost "Copy the `main` branch only", naklonuje se vám pouze větev `main`. Zbýlé větve se pak musí do forku přidat podle [těchto pokynů](https://gist.github.com/asanchezr/fd8f0fec142ff053c9d5332598a86a2b).
+
 > [!NOTE]
 > Pokud by váš fork zaostával za upstreamem, nezapomeňte jej synchronizovat z webové stránky GitHubu (`Sync fork` a `Update branch`).
-3. Postupujte podle [oficiálních pokynů](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account) k propojení SSH klíče umístěného v `~/.ssh/` s vaším účtem na GitHubu.
+2. Postupujte podle [oficiálních pokynů](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account) k propojení SSH klíče umístěného v `~/.ssh/` s vaším účtem na GitHubu.
 > [!NOTE]  
 > Pokud pracujete na svém vlastním osobním počítači, měli byste také postupovat podle [těchto](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent#generating-a-new-ssh-key) pokynů pro vytvoření nového SSH klíče.
-5. Vytvořte si pracovní složku (`workspace`), naklonujte do ní svůj fork repozitáře a udělejte checkout na větev `linux-intro`.
+3. Vytvořte si pracovní složku (`workspace`), naklonujte do ní svůj fork repozitáře a udělejte checkout na větev `linux-intro`.
 
 ### Shell
 
