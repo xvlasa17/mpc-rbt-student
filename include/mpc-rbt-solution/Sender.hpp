@@ -18,7 +18,12 @@ public:
     config(senderConfig),
     timer_period(config.sendingPeriodMillis)
   {
-    UNIMPLEMENTED(__PRETTY_FUNCTION__);
+    UDP udp(128);
+    udp.create();
+    udp.configure();
+    udp.bind();
+    callback = [this] { onDataTimerTick(); }; 
+    //UNIMPLEMENTED(__PRETTY_FUNCTION__);
   }
 
   void run();
