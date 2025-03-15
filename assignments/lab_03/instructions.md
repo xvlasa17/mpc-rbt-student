@@ -27,7 +27,7 @@ Testovací Node se chová jako stavový automat. Dovolí vám tedy plnit úkoly 
 > Na konci cvičení bude práce ohodnocena až **5 body**!
 
 > [!CAUTION]  
-> Je zakázáno jakkoliv modifikovat zdrojový kód testovací Node. Zdrojový kód máte k dispozici pouze proto, aby jste se mohli blíže seznámit s jejím vnitřním fungováním. Ostatně takto by vypadala i vaše práce s balíčky staženými od ROS2 komunity. V průběhu cvičení buďte připraveni kdykoliv vyučujícímu vysvětlit metody vašeho řešení a prezentovat příkazy, které jste využili (například příkaz **history**.
+> Je zakázáno jakkoliv modifikovat zdrojový kód testovací Node. Zdrojový kód máte k dispozici pouze proto, aby jste se mohli blíže seznámit s jejím vnitřním fungováním. Ostatně takto by vypadala i vaše práce s balíčky staženými od ROS2 komunity. V průběhu cvičení buďte připraveni kdykoliv vyučujícímu vysvětlit metody vašeho řešení a prezentovat příkazy, které jste využili (například příkaz **history**).
 
 ## Úkoly
 
@@ -44,8 +44,16 @@ Váš ROS 2 workspace pro toto cvičení se nachází na úrovni tohoto souboru.
 4.  Nyní je ta pravá chvíle vytvořit si svoji první C++ Node. Vytvořte si nový balíček ve složce src a v něm vytvořte Node - jeho název je na vás. V Node poté vytvořte jednoduchý **publisher** (ve webové dokumentaci existuje přehledný návod) který bude na topicu **node_name** publikovat **std_msgs/msg/String** s názvem vašeho Nodu. Nezapomeňte u vašeho balíčku vyplnit i *package.xml*. Pro úspěšnou kompilaci budete muset taktéž správně nalinkovat *rclcpp* a interfaces pro *std_msgs*. Pozorně čtěte dokumentaci. Pokud vám v tomto bodě není něco 100% jasné, raději se zeptejte.
 https://docs.ros.org/en/foxy/Tutorials/Beginner-Client-Libraries/Writing-A-Simple-Cpp-Publisher-And-Subscriber.html
 
-5.  **Publisher** vám funguje. Do stejné Node tak přidáme i **Subscriber**. Na topicu **battery_voltage** vám nyní dvakrát za sekundu chodí měřené napětí z baterie. Tyto data vyčítejte, přepočítejte je na procenta a inhed publikujte za pomoci stejného interface na topic **battery_percentage**. 10 po sobě správně publikovaných zpráv splní bod 5.
+5.  **Publisher** vám funguje. Do stejné Node tak přidáme i **Subscriber**. Na topicu **battery_voltage** vám nyní dvakrát za sekundu chodí měřené napětí z baterie. Tyto data vyčítejte, přepočítejte je na procenta (100% == 42V, 0% == 32V) a inhed publikujte za pomoci stejného interface na topic **battery_percentage**. 10 po sobě správně publikovaných zpráv splní bod 5.
+
+6.  Krása ROS 2 vězí mimo jiné i v možnosti dynamické konfigurace jednotlivých Node. Na přednášce jsme mluvili o takzvaných parametrech. Zjistěte, jaké parametry obsahuje testovací Node. Pro splnění tohoto bodu parametr z konzole upravte.
+
+7.  Parametry lze nastavovat za běhu, nebo přímo při startu Node. Do té své nyní přidejte možnost dvou Float parametrů, kterými bod 5 tohoto zadání rozšíříte o možnost nastavení maximální a minimální hodnoty napětí baterie, ze které se vypočítává její procentuální nabití. Zkuste Vaši node spustit s parametry 100% == 42V, 0% == 36V (Defaultní hodnoty parametrů nastavte na původní hodnotu z bodu 5).
+
+8.  V tomto bodu si vyzkoušíme dva nové koncepty. Prvním z nich je launch file - jednoduchý mechanismus umožňující současné spuštění několika Node. Druhým z nich je ros2 bag - Logování ROS 2 komunikace pro sběr datasetu, nebo pozdější debuggování. V root složce vašeho workspace vytvořte složku *launch* do které vytvoříte soubor *record_battery.launch.py*. Dle dokumentace pak v launch file spusťte Vaši Node se stejnými parametry jako v bodě 7 a zároveň spusťte ros2bag. Launch file spusťte z konzole a po pár desítkách vteřin jej ukončete. Uložený ROS 2 bag si nyní můžete prohlédnout pomocí příkazu *info*, nebo spustit pomocí *play*
+
+Zbyl vám čas? Využijte ho k experimentování. Můžete se například domluvit s kolegy, nastavit si stejné ROS_DOMAIN_ID a komunikovat napříč počítači.
 
 
 > [!CAUTION]
-> Zbytek cvičení bude zveřejněn v nejbližší době
+> V průběhu cvičení nevypínejte konzoli se spuštěnou testovací Node. Ta slouží jako kontrola, že jste správně prošli všemi kroky tohoto zadání.
