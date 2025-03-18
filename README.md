@@ -13,12 +13,12 @@ This repository is a template for all student solutions for lab tasks in the MPC
 
 Follow installation steps in the [MPC-RBT Simulator](https://github.com/Robotics-BUT/mpc-rbt-simulator) repository to install the required versions of Ubuntu, ROS, and Webots, and to prepare your workspace.
 
-Create a fork of this repository, navigate to your created workspace `src` directory (e.g., `mpc_rbt_ws/src`) and clone it.
+Create a fork of this repository, navigate to your created workspace directory (e.g., `mpc_rbt_ws`) and clone your fork into its `src` subdirectory.
 
 Install any additional missing dependencies using the following command:
 
 ```
-rosdep install --from-paths ./ -y -r --ignore-src --rosdistro humble
+rosdep install --from-paths src -y -r --ignore-src --rosdistro humble
 ```
 
 ## Package Structure
