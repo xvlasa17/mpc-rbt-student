@@ -6,7 +6,7 @@ Cvičení je koncipováno formou postupného plnění úkolů, které budou auto
 
 Čtěte pozorně zadání v rámci tohoto dokumentu.
 Je doporučeno v rámci cvičení využívat dokumentaci ROS2 jak na webu, tak v helpu samotného CLI (command line interface)
-Testovací Node se chová jako stavový automat. Dovolí vám tedy plnit úkoly pouze v pořadí, v jakém jsou zadány zde. Ve chvíli úspěšného splnění úlohy Node 
+Testovací Node se chová jako stavový automat. Dovolí vám tedy plnit úkoly pouze v pořadí, v jakém jsou zadány zde. Ve chvíli úspěšného splnění úlohy Node automaticky přejde do dalšího stavu a změnu zaloguje.
 
 ## Domácí příprava
 

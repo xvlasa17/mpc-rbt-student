@@ -25,10 +25,32 @@ public:
         timer2_ = this->create_wall_timer(50ms, std::bind(&TestNode::timer_2_callback, this));
         subscription2_ = create_subscription<geometry_msgs::msg::Point>("robot_move", 1, std::bind(&TestNode::topic_2_callback, this, std::placeholders::_1));
 
-        timer4_ = this->create_wall_timer(500ms, std::bind(&TestNode::timer_4_callback, this));
+        subscription3_ = create_subscription<std_msgs::msg::String>("node_name", 1, std::bind(&TestNode::topic_3_callback, this, std::placeholders::_1));
+
+        auto param_desc = rcl_interfaces::msg::ParameterDescriptor{};
+        param_desc.description = "This parameter changes the publishing frequency of the battery voltage masurement!";
+        this->declare_parameter("battery_voltage_hz", 2, param_desc);
+
+        createTimer4();
         publisher4_ = this->create_publisher<std_msgs::msg::Float32>("battery_voltage", 1);
         subscription4_ = create_subscription<std_msgs::msg::Float32>("battery_percentage", 1, std::bind(&TestNode::topic_4_callback, this, std::placeholders::_1));
 
+        paramSubscriber_ = std::make_shared<rclcpp::ParameterEventHandler>(this);
+
+        auto cb = [this](const rclcpp::Parameter & p) {
+            if (currentStep_ != 5) { return; }
+
+            RCLCPP_INFO(
+              this->get_logger(), "Received an update to parameter \"%s\" of type %s: \"%ld\"",
+              p.get_name().c_str(),
+              p.get_type_name().c_str(),
+              p.as_int());
+
+            createTimer4();
+            RCLCPP_INFO(this->get_logger(), "Congrats, step 6 finished!");
+            currentStep_ = 6;
+        };
+        cbHandle_ = paramSubscriber_->add_parameter_callback("battery_voltage_hz", cb);
     }
 
 private:
@@ -107,9 +129,9 @@ private:
     }
 
     void timer_4_callback() {
-        if (currentStep_ != 4) { return; }
+        if (currentStep_ != 4 && currentStep_ != 5) { return; }
         batteryVoltage = 32.0f + 10.0f  *(static_cast<float>(rand()) / RAND_MAX);
-        batteryPercentage = ((batteryVoltage - 32.0f) / 10.0f) * 100.0f; // 32V  - 42V
+        batteryPercentage = ((batteryVoltage - 32.0f) / 10.0f) * 100.0f;
 
         auto msg = std_msgs::msg::Float32();
         msg.data = batteryVoltage;
@@ -121,17 +143,27 @@ private:
 
         static int timesReceived = 0;
 
-        if (msg->data - batteryVoltage < 0.01) {
+        auto diff = abs(msg->data - batteryPercentage);
+        if (diff < 0.01) {
             timesReceived++;
             RCLCPP_INFO(this->get_logger(), ".");
             if (timesReceived >= 10) {
                 currentStep_ = 5;
                 RCLCPP_INFO(this->get_logger(), "Your node is now correctly transforming battery voltage! Continue with step 6\n");
             }
+        } else {
+            RCLCPP_WARN(this->get_logger(), "Incorrect battery percentage by %f", diff);
         }
     }
 
-    uint8_t currentStep_ = 4;
+    void createTimer4() {
+        auto freq = this->get_parameter("battery_voltage_hz").as_int();
+        auto period = std::chrono::duration<double>(1.0 / static_cast<float>(freq));
+
+        timer4_ = this->create_wall_timer(std::chrono::duration_cast<std::chrono::milliseconds>(period), std::bind(&TestNode::timer_4_callback, this));
+    }
+
+    uint8_t currentStep_ = 0;
 
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr subscription0_;
     rclcpp::Subscription<sensor_msgs::msg::Range>::SharedPtr subscription1_;
@@ -147,6 +179,9 @@ private:
     rclcpp::TimerBase::SharedPtr timer4_;
     rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr publisher4_;
     rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr subscription4_;
+
+    std::shared_ptr<rclcpp::ParameterEventHandler> paramSubscriber_;
+    std::shared_ptr<rclcpp::ParameterCallbackHandle> cbHandle_;
 };
 
 int main(int argc, char **argv) {
