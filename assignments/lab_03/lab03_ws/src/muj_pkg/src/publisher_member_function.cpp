@@ -37,7 +37,6 @@ public:
     }
 
 
-
 private:
   void topic_callback(const std_msgs::msg::Float32::ConstSharedPtr &msg) const
     {
@@ -57,9 +56,6 @@ private:
   rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr publisher_;
       rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr subscription_;
   size_t count_;
-  
-
-
 
 };
 
