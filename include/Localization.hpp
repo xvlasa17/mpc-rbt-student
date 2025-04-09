@@ -14,6 +14,9 @@ public:
     LocalizationNode();
 
 private:
+    double x_;
+    double y_;
+    double theta_;
     void jointCallback(const sensor_msgs::msg::JointState & msg);
 
     void updateOdometry(double left_wheel_vel, double right_wheel_vel, double dt);
