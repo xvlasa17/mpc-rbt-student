@@ -22,9 +22,17 @@ def generate_launch_description():
         output='screen'
     )
     
+    planning_node = Node(
+        package='mpc_rbt_student',
+        executable='planning',
+        name='planning_node',
+        output='screen'
+    )
+    
     
     return LaunchDescription([
     rviz_node,
-    localization_node
+    localization_node,
+    planning_node
 
     ])

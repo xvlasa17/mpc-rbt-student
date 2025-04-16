@@ -12,7 +12,7 @@ LocalizationNode::LocalizationNode() :
 
     // Subscriber for joint_states
     joint_subscriber_ = this->create_subscription<sensor_msgs::msg::JointState>("/joint_states",10,std::bind(&LocalizationNode::jointCallback,this,std::placeholders::_1));
-    current_time_ = this->get_clock()->now();
+    auto current_time_ = this->get_clock()->now();
 
     // Publisher for odometry
     odometry_publisher_ = this->create_publisher<nav_msgs::msg::Odometry>("/odometry",10);
@@ -40,8 +40,8 @@ void LocalizationNode::jointCallback(const sensor_msgs::msg::JointState & msg) {
     publishOdometry();
     publishTransform();
 
-
-    RCLCPP_INFO(get_logger(), "v1: %f v2: %f", msg.velocity[0], msg.velocity[1]);
+    
+    //RCLCPP_INFO(get_logger(), "v1: %f v2: %f", msg.velocity[0], msg.velocity[1]);
 }
 
 void LocalizationNode::updateOdometry(double left_wheel_vel, double right_wheel_vel, double dt) {
