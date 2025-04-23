@@ -1,4 +1,5 @@
 #include "../include/Planning.hpp"
+#include "mpc_rbt_simulator/RobotConfig.hpp"
 
 PlanningNode::PlanningNode() :
     rclcpp::Node("planning_node") {
@@ -70,34 +71,28 @@ void PlanningNode::planPath(const std::shared_ptr<nav_msgs::srv::GetPlan::Reques
     path.header.frame_id = "map";
     path.header.stamp = this->get_clock()->now();
 
-    // Dummy body na test (napr. 5 bodov medzi start a goal)
-    for (int i = 0; i <= 5; ++i) {
-        geometry_msgs::msg::PoseStamped pose;
-        pose.header = path.header;
-        pose.pose.position.x = start.pose.position.x + (goal.pose.position.x - start.pose.position.x) * i / 5.0;
-        pose.pose.position.y = start.pose.position.y + (goal.pose.position.y - start.pose.position.y) * i / 5.0;
-        pose.pose.orientation.w = 1.0;  // jednotková orientácia
-        path.poses.push_back(pose);
+    // A* algoritmus a smoothing
+    RCLCPP_WARN(get_logger(), "Dilate Map");
+    dilateMap();
+    RCLCPP_WARN(get_logger(), "AStar");
+    aStar(request->start, request->goal);
+    smoothPath();  // Ak je prázdna, nevadí
+
+    // Skontroluj, či je cesta naplnená
+    if (path_.poses.empty()) {
+        RCLCPP_WARN(get_logger(), "Cesta je prázdna.");
+    } else {
+        RCLCPP_INFO(get_logger(), "Cesta obsahuje %ld bodov.", path_.poses.size());
     }
 
-    // Ulož aj do členskej pre publisher (do budúcna)
-    path_ = path;
-
-    // Naplň odpoveď
-    response->plan = path;
-
-    RCLCPP_INFO(get_logger(), "Dummy cesta vytvorená (%ld bodov).", path.poses.size());
-
-    // ********
-    // * Help *
-    // ********
+    // Uloženie naplánovanej cesty do odpovede
+    response->plan = path_;
     
-    aStar(request->start, request->goal);
-    /*
-    smoothPath();
-    */
+    // Publikovanie cesty
     path_pub_->publish(path_);
-    
+
+    // Uložíme aj do členskej pre publisher (do budúcna)
+    path_ = path;
 }
 
 void PlanningNode::dilateMap() {
@@ -106,15 +101,36 @@ void PlanningNode::dilateMap() {
     // ********
     // * Help *
     // ********
-    /*
+    int width = map_.info.width;
+    int height = map_.info.height;
+    float resolution = map_.info.resolution;
+
     nav_msgs::msg::OccupancyGrid dilatedMap = map_;
-    ... processing ...
+
+    int r = (int) ((robot_config::HALF_DISTANCE_BETWEEN_WHEELS*1.2)/resolution);
+    RCLCPP_WARN(get_logger(), "R: %d, W: %d, H: %d, res: %f, d=%f", r,width,height,resolution,(robot_config::HALF_DISTANCE_BETWEEN_WHEELS*1.2));
+
+
+    for(auto i=r;i<width-r;++i){
+        for(auto j=r;j<height-r;++j){
+            //RCLCPP_WARN(get_logger(), "x: %d, y: %d", i,j);
+            if(map_.data[i+j*width]){
+                for(auto k=i-r;k<(i+r);++k){
+                    for(auto l=j-r;l<(j+r);++l){
+                    //RCLCPP_WARN(get_logger(), "x: %d, y: %d (dilated) r: %d", k,l,r);
+                    dilatedMap.data[k+l*width] = 100;
+                    }
+                }
+            }
+        }
+    }
+    
+
     map_ = dilatedMap;
-    */
+    
 }
 
 void PlanningNode::aStar(const geometry_msgs::msg::PoseStamped &start, const geometry_msgs::msg::PoseStamped &goal) {
-    RCLCPP_INFO(get_logger(), "Zavolani AStar");
     int width = map_.info.width;
     int height = map_.info.height;
     float resolution = map_.info.resolution;
@@ -125,7 +141,6 @@ void PlanningNode::aStar(const geometry_msgs::msg::PoseStamped &start, const geo
         mx = static_cast<int>((wx - origin_x) / resolution);
         my = static_cast<int>((wy - origin_y) / resolution);
     };
-    RCLCPP_INFO(get_logger(), "worldToMap");
 
     int sx, sy, gx, gy;
     worldToMap(start.pose.position.x, start.pose.position.y, sx, sy);
@@ -134,12 +149,12 @@ void PlanningNode::aStar(const geometry_msgs::msg::PoseStamped &start, const geo
     const int8_t OBSTACLE_THRESHOLD = 50;
 
     auto isFree = [&](int x, int y) {
+        // Skontrolujeme, či je pozícia v platnom rozsahu
         if (x < 0 || x >= width || y < 0 || y >= height) return false;
         int index = y * width + x;
         int8_t val = map_.data[index];
         return val >= 0 && val < OBSTACLE_THRESHOLD;
     };
-    RCLCPP_INFO(get_logger(), "isFree");
 
     auto heuristic = [&](int x1, int y1, int x2, int y2) {
         return std::hypot(x1 - x2, y1 - y2);
@@ -157,10 +172,9 @@ void PlanningNode::aStar(const geometry_msgs::msg::PoseStamped &start, const geo
     std::shared_ptr<Cell> goalCell = nullptr;
 
     std::array<std::pair<int, int>, 8> directions = {{
-        {0, 1}, {1, 0}, {0, -1}, {-1, 0},
-        {1, 1}, {-1, 1}, {1, -1}, {-1, -1}
+        {0, 3}, {3, 0}, {0, -3}, {-3, 0},
+        {2, 2}, {-2, 2}, {2, -2}, {-2, -2}
     }};
-    RCLCPP_INFO(get_logger(), "while");
 
     while (!openList.empty() && rclcpp::ok()) {
         auto currentIt = std::min_element(openList.begin(), openList.end(), [](auto a, auto b) {
@@ -175,12 +189,10 @@ void PlanningNode::aStar(const geometry_msgs::msg::PoseStamped &start, const geo
             goalCell = current;
             break;
         }
-        RCLCPP_INFO(get_logger(), "for");
+
         for (auto [dx, dy] : directions) {
             int nx = current->x + dx;
             int ny = current->y + dy;
-
-
 
             if (!isFree(nx, ny) || closedList[ny * width + nx]) continue;
 
@@ -202,7 +214,6 @@ void PlanningNode::aStar(const geometry_msgs::msg::PoseStamped &start, const geo
             }
         }
     }
-    RCLCPP_INFO(get_logger(), "while");
 
     path_.poses.clear();
 
@@ -212,7 +223,7 @@ void PlanningNode::aStar(const geometry_msgs::msg::PoseStamped &start, const geo
 
         while (cell) {
             geometry_msgs::msg::PoseStamped pose;
-            pose.header.frame_id = "/map_server/map";
+            pose.header.frame_id = "map";
             pose.pose.position.x = cell->x * resolution + origin_x + resolution / 2.0;
             pose.pose.position.y = cell->y * resolution + origin_y + resolution / 2.0;
             pose.pose.orientation.w = 1.0;
@@ -221,49 +232,85 @@ void PlanningNode::aStar(const geometry_msgs::msg::PoseStamped &start, const geo
         }
 
         std::reverse(waypoints.begin(), waypoints.end());
-        path_.header.frame_id = "/map_server/map";
+        path_.header.frame_id = "map";
         path_.header.stamp = this->get_clock()->now();
         path_.poses = waypoints;
 
         RCLCPP_INFO(get_logger(), "Cesta naplánovaná cez %ld bodov.", path_.poses.size());
+        // Publikujeme path_ po jej naplnení
         path_pub_->publish(path_);
     } else {
         RCLCPP_WARN(get_logger(), "Cesta sa nepodarila nájsť.");
     }
-
-    // ********
-    // * Help *
-    // ********
-    /*
-    Cell cStart(...x-map..., ...y-map...);
-    Cell cGoal(...x-map..., ...y-map...);
-
-    std::vector<std::shared_ptr<Cell>> openList;
-    std::vector<bool> closedList(map_.info.height * map_.info.width, false);
-
-    openList.push_back(std::make_shared<Cell>(cStart));
-
-    while(!openList.empty() && rclcpp::ok()) {
-        ...
-    }
-
-    RCLCPP_ERROR(get_logger(), "Unable to plan path.");
-    */
 }
+
 
 void PlanningNode::smoothPath() {
-    // add code here
+    if (path_.poses.size() < 3) {
+        RCLCPP_WARN(get_logger(), "Path too short to smooth (needs at least 3 points)");
+        return;
+    }
 
-    // ********
-    // * Help *
-    // ********
-    /*
-    std::vector<geometry_msgs::msg::PoseStamped> newPath = path_.poses;
-    ... processing ...
-    path_.poses = newPath;
-    */
+    // Number of smoothing iterations (more iterations = smoother path)
+    const int iterations = 10;
+    std::vector<geometry_msgs::msg::PoseStamped> smoothed_path = path_.poses;
+
+    for (int i =  0; i < iterations; ++i) {
+        std::vector<geometry_msgs::msg::PoseStamped> temp_path;
+        
+        // Always keep the first point
+        temp_path.push_back(smoothed_path.front());
+        
+        // Process intermediate points
+        for (size_t j = 1; j < smoothed_path.size(); ++j) {
+            const auto& p0 = smoothed_path[j-1];
+            const auto& p1 = smoothed_path[j];
+            
+            // Create two new points between each pair of original points
+            geometry_msgs::msg::PoseStamped q, r;
+            
+            // q = 3/4*p0 + 1/4*p1
+            q.header = p0.header;
+            q.pose.position.x = 0.75 * p0.pose.position.x + 0.25 * p1.pose.position.x;
+            q.pose.position.y = 0.75 * p0.pose.position.y + 0.25 * p1.pose.position.y;
+            q.pose.orientation.w = 1.0;  // Neutral orientation
+            
+            // r = 1/4*p0 + 3/4*p1
+            r.header = p0.header;
+            r.pose.position.x = 0.25 * p0.pose.position.x + 0.75 * p1.pose.position.x;
+            r.pose.position.y = 0.25 * p0.pose.position.y + 0.75 * p1.pose.position.y;
+            r.pose.orientation.w = 1.0;  // Neutral orientation
+            
+            temp_path.push_back(q);
+            temp_path.push_back(r);
+        }
+        
+        // Always keep the last point
+        temp_path.push_back(smoothed_path.back());
+        smoothed_path = temp_path;
+    }
+
+    // Optional: Reduce point density while maintaining smoothness
+    if (smoothed_path.size() > 200) {  // If path is too long
+        std::vector<geometry_msgs::msg::PoseStamped> simplified_path;
+        const size_t step = smoothed_path.size() / 100;  // Target ~50 points
+        for (size_t i = 0; i < smoothed_path.size(); i += step) {
+            simplified_path.push_back(smoothed_path[i]);
+        }
+        // Keep the last point if not already included
+        if (simplified_path.back().pose.position.x != smoothed_path.back().pose.position.x ||
+            simplified_path.back().pose.position.y != smoothed_path.back().pose.position.y) {
+            simplified_path.push_back(smoothed_path.back());
+        }
+        smoothed_path = simplified_path;
+    }
+
+    // Update the path
+    path_.poses = smoothed_path;
+    RCLCPP_INFO(get_logger(), "Path smoothed from %ld to %ld points", path_.poses.size(), smoothed_path.size());
 }
 
-Cell::Cell(int c, int r) {
-    // add code here
+
+Cell::Cell(int c, int r) : x(c), y(r), g(0), h(0), f(0), parent(nullptr) {
+    // Initialize all member variables
 }
