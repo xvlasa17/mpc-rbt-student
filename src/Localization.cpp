@@ -8,6 +8,8 @@ LocalizationNode::LocalizationNode() :
     // Odometry message initialization
     odometry_.header.frame_id = "map";
     odometry_.child_frame_id = "base_link";
+    odometry_.pose.pose.position.x = -0.5;
+
     // add code here
 
     // Subscriber for joint_states

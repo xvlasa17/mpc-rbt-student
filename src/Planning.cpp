@@ -107,8 +107,8 @@ void PlanningNode::dilateMap() {
 
     nav_msgs::msg::OccupancyGrid dilatedMap = map_;
 
-    int r = (int) ((robot_config::HALF_DISTANCE_BETWEEN_WHEELS*1.2)/resolution);
-    RCLCPP_WARN(get_logger(), "R: %d, W: %d, H: %d, res: %f, d=%f", r,width,height,resolution,(robot_config::HALF_DISTANCE_BETWEEN_WHEELS*1.2));
+    int r = (int) ((robot_config::HALF_DISTANCE_BETWEEN_WHEELS*1.5)/resolution);
+    RCLCPP_WARN(get_logger(), "R: %d, W: %d, H: %d, res: %f, d=%f", r,width,height,resolution,(robot_config::HALF_DISTANCE_BETWEEN_WHEELS*1.5));
 
 
     for(auto i=r;i<width-r;++i){

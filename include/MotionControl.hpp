@@ -22,8 +22,12 @@ class MotionControlNode : public rclcpp::Node {
     
     private:
         // Parameters
-        // TO DO
-
+        double max_linear_speed_;
+        double max_angular_speed_;
+        double lookahead_distance_;
+        double collision_threshold_;
+        double k_p_;
+        
         // Methods
         void checkCollision();
         void updateTwist();
